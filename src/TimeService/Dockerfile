@@ -1,4 +1,5 @@
-FROM pitstop-dotnet-sdk-base:1.0 AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
+COPY Directory.Packages.props ./
 WORKDIR /app
 
 # Copy necessary files and restore as distinct layer
@@ -10,9 +11,8 @@ COPY . ./
 RUN dotnet publish -c Release -o out
 
 # Build runtime image
-FROM pitstop-dotnet-runtime-base:1.0
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 COPY --from=build-env /app/out .
-
 # Start
 ENTRYPOINT ["dotnet", "Pitstop.TimeService.dll"]

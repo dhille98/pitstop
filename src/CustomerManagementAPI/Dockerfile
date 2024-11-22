@@ -1,23 +1,34 @@
-FROM pitstop-dotnet-sdk-base:1.0 AS build-env
+# Stage 1: Build the application
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
+COPY Directory.Packages.props ./
 WORKDIR /app
 
-# Copy necessary files and restore as distinct layer
+# Copy the project files
 COPY *.csproj ./
+# Restore dependencies
 RUN dotnet restore
 
-# Copy everything else and build
+# Copy the entire source code
 COPY . ./
+
+# Build the application
 RUN dotnet publish -c Release -o out
 
-# Build runtime image
-FROM pitstop-dotnet-aspnet-base:1.0
+# Stage 2: Build the runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
-COPY --from=build-env /app/out .
 
-# Expose ports
-EXPOSE 5100/tcp
-ENV ASPNETCORE_URLS http://*:5100
-HEALTHCHECK --interval=30s --timeout=3s --retries=1 CMD curl --silent --fail http://localhost:5100/hc || exit 1
+# Copy the build output from the previous stage
+COPY --from=build-env /app/out ./
 
-# Start
-ENTRYPOINT ["dotnet", "Pitstop.CustomerManagementAPI.dll"]
+# Expose the port the application will run on
+
+EXPOSE 5100
+
+# Set the entry point to run the application with --urls
+ENTRYPOINT ["dotnet", "Pitstop.CustomerManagementAPI.dll", "--urls", "http://0.0.0.0:5100"]
+
+
+
+
+
